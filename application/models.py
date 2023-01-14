@@ -1,5 +1,5 @@
 
-from application import db
+from . import db
 
 
 class Saver:
