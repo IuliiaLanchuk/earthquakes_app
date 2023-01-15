@@ -13,6 +13,7 @@ class User(db.Model, Saver):
     nickname = db.Column(db.String(64), unique = True)
     email = db.Column(db.String(120), unique = True)
     city = db.Column(db.String(51))
+    age = db.Column(db.Integer)
 
     def __repr__(self):
         return '<User %r> from <%r>' % (self.nickname, self.city)

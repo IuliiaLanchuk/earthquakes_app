@@ -11,6 +11,7 @@ db.init_app(app)
 # with app.app_context():
 #     db.create_all()
 Migrate(app, db)
+
 @app.route('/', methods =["GET", "POST"])
 def index():
     return 'lalhhhhha'
