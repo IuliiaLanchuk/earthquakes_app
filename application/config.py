@@ -1,5 +1,6 @@
 import os
 
+# API_KEY_WEATHER = os.environ['API_KEY_WEATHER']
 
 class Config:
 
@@ -11,3 +12,4 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'db_instance.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
