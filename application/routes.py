@@ -4,13 +4,11 @@ import requests
 from flask import Blueprint, request, make_response, render_template
 import datetime
 import json
-
 from application.models import User, Location
 
 
 API_KEY_WEATHER = os.environ['API_KEY_WEATHER']
 page = Blueprint('page', __name__, template_folder='templates')
-
 
 
 def get_city_coordinates(city):
@@ -68,3 +66,38 @@ def get_weather_by_city(city_):
         f'Weather in city {location.city} is {get_weather_today(location)}'
     )
 
+
+def possible_earthquakes_data_format(earthquakes):
+    possible_earthquakes = {}
+    num=1
+    for earthquake in earthquakes:
+        data = earthquake['properties']
+        possible_earthquakes[num] = {
+            'place': data['place'],
+            'magnitude': data['mag'],
+            'day': datetime.datetime.fromtimestamp(data['time'] / 1000.0).isoformat()[:10],
+            'url': data['url'],
+            'tsunami': data['tsunami'],
+            'type': data['type']
+        }
+        num +=1
+    return possible_earthquakes
+
+
+@page.route('/earthquakes/<city_>', methods=['GET'])
+def get_earthquakes(city_):
+    existing_city = Location.query.filter(Location.city == city_.lower()).first()
+    if existing_city:
+        day_today = datetime.date.today()
+        base_url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&'
+        earthquake_url = base_url + f'starttime={day_today}&endtime={day_today + datetime.timedelta(days=6)}& \
+                                    lat={existing_city.latitude}&lon={existing_city.longitude}&maxradiuskm=2000'
+
+        earthquakes = requests.get(earthquake_url).json()['features']
+        if earthquakes:
+            return make_response(
+                f'For city {existing_city.city} possible earthquakes in max radius 2000km are : '
+                f'{possible_earthquakes_data_format(earthquakes)}')
+        return make_response(
+            f'For city {existing_city.city} there are no possible earthquakes in max radius 2000km')
+    return get_earthquakes(save_new_city_in_location_table(city_).city)
