@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import requests
 from flask import Blueprint, request, make_response, render_template, redirect, url_for
@@ -47,17 +48,14 @@ def print_coordinates(city_):
 def get_city_coords():
     """Create a user via query string parameters."""
     if request.method == 'GET':
-        return render_template('get_city_coords.html')
-    else:
-        city_ = request.form['city']
-        return redirect(url_for('page.print_coordinates', city_=city_))
+        return render_template('get_city_coordinates.html')
+    return redirect(url_for('page.print_coordinates', city_=request.form['city']))
 
 
 def get_weather_today(city):
     url = 'https://api.openweathermap.org/data/2.5/weather?lat={}&lon={}&units=metric&appid={}'.format(
         city.latitude, city.longitude, API_KEY_WEATHER)
     return requests.get(url).json()['main']
-
 
 
 @page.route('/weather/<city_>')
@@ -73,57 +71,51 @@ def print_weather_by_city(city_):
 def get_weather_by_city():
     if request.method == 'GET':
         return render_template('get_weather.html')
-    else:
-        city_name = request.form['city']
-        return redirect(url_for('page.print_weather_by_city', city_=city_name))
+    return redirect(url_for('page.print_weather_by_city', city_=request.form['city']))
 
 
-def possible_earthquakes_data_format(earthquakes):
-    possible_earthquakes = {}
-    num=1
+def possible_earthquakes_data_format(earthquakes: List) -> List:
+    possible_earthquakes = []
+    hyperlink_format = '<a href="{link}">{text}</a>'
     for earthquake in earthquakes:
         data = earthquake['properties']
-        possible_earthquakes[num] = {
+        possible_earthquakes.append({
             'place': data['place'],
             'magnitude': data['mag'],
             'day': datetime.datetime.fromtimestamp(data['time'] / 1000.0).isoformat()[:10],
-            'url': data['url'],
-            'tsunami': data['tsunami'],
+            'url': hyperlink_format.format(link=data['url'], text=data['url']),
+            'tsunami': 'yes' if data['tsunami'] == 1 else 'no',
             'type': data['type']
-        }
-        num +=1
+        })
     return possible_earthquakes
 
 
+def reach_data_earthquakes_for_week(city: Location) -> List:
+    day_today = datetime.date.today()
+    base_url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&'
+    earthquake_url = base_url + f'starttime={day_today}&endtime={day_today + datetime.timedelta(days=6)}& \
+                                     lat={city.latitude}&lon={city.longitude}&maxradiuskm=2000'
+    return requests.get(earthquake_url).json()['features']
 
-@page.route('/earthquakes/<city_>', methods=['GET'])
-def get_earthquakes(city_):
+
+@page.route('/earthquakes/<city_>')
+def get_earthquakes_by_city(city_):
     existing_city = Location.query.filter(Location.city == city_.lower()).first()
     if existing_city:
-        day_today = datetime.date.today()
-        base_url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&'
-        earthquake_url = base_url + f'starttime={day_today}&endtime={day_today + datetime.timedelta(days=6)}& \
-                                    lat={existing_city.latitude}&lon={existing_city.longitude}&maxradiuskm=2000'
-
-        earthquakes = requests.get(earthquake_url).json()['features']
+        earthquakes = reach_data_earthquakes_for_week(existing_city)
         if earthquakes:
-            return make_response(
-                f'For city {existing_city.city} possible earthquakes in max radius 2000km are : '
-                f'{possible_earthquakes_data_format(earthquakes)}')
+            return render_template(
+                'output_earthquakes_format.jinja2',
+                earthquakes=possible_earthquakes_data_format(earthquakes),
+                title="Show Earthquakes"
+            )
         return make_response(
             f'For city {existing_city.city} there are no possible earthquakes in max radius 2000km')
-    return get_earthquakes(save_new_city_in_location_table(city_).city)
+    return get_earthquakes_by_city(save_new_city_in_location_table(city_).city)
 
 
-@page.route('/success/<name>')
-def success(name):
-    return 'welcome %s' % name
-
-
-@page.route('/login', methods=['POST', 'GET'])
-def login():
-    if request.method == 'POST':
-        user = request.form['nm']
-        return redirect(url_for('page.success', name=user))
-    else:
-        return render_template("login.html")
+@page.route('/earthquakes', methods=['GET', 'POST'])
+def get_earthquakes():
+    if request.method == 'GET':
+        return render_template('input_city_for_earthquakes.html')
+    return redirect(url_for('page.get_earthquakes_by_city', city_=request.form['city']))
