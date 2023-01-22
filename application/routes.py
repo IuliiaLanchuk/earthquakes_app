@@ -119,3 +119,25 @@ def get_earthquakes():
     if request.method == 'GET':
         return render_template('input_city_for_earthquakes.html')
     return redirect(url_for('page.get_earthquakes_by_city', city_=request.form['city']))
+
+
+def save_new_user_in_user_table(nickname_, email_, city_, age_):
+    new_user = User(nickname=nickname_, email=email_, city=city_, age=age_)
+    new_user.save()
+    return new_user
+
+
+@page.route('/home/welcome/<nickname_>/<email_>/<city_>/<age_>')
+def welcome_new_user(nickname_, email_, city_, age_):
+    existing_user = User.query.filter(User.nickname == nickname_ or User.email== email_).first()
+    return render_template('output_data_about_user.jinja2', user=existing_user if existing_user else save_new_user_in_user_table(
+        nickname_, email_, city_, age_))
+
+
+@page.route('/home', methods=['GET', 'POST'])
+def create_new_user():
+    if request.method == 'GET':
+        return render_template('fill_in_data_to_create_user.html')
+
+    return redirect(url_for('page.welcome_new_user', nickname_=request.form['nickname'], email_=request.form['email'],
+                            city_=request.form['city'], age_=request.form['age']))

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<meta name="viewport" content="width=<<for>>, initial-scale=1.0"/>
+
+</head>
+<body>
+<div class="container">
+
+
+    <h1>Welcome {{ user.nickname }} !</h1>
+     <ul id="user.nickname">
+      <li>
+        <span class="field-name">User:</span>
+        <span class="field-value">{{ user.nickname }}</span>
+      </li>
+      <li>
+        <span class="field-name">Email:</span>
+        <span class="field-value">{{ user.email }}</span>
+      </li>
+      <li>
+        <span class="field-name">City:</span>
+        <span class="field-value">{{ user.city }}</span>
+      </li>
+      <li>
+        <span class="field-name">Age:</span>
+        <span class="field-value">{{ user.age }}</span>
+      </li>
+    </ul>
+  </div>
+
+    <p><input type = "submit"  value = "Weather" /></p>
+    <p><input type = "submit"  value = "Earthquakes" /></p>
+</body>
+</html>
